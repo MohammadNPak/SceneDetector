@@ -283,3 +283,5 @@ compile_commands.json
 
 *_qmlcache.qrc
 
+SceneDetector/
+py/template/
