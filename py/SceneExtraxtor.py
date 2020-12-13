@@ -20,7 +20,7 @@ class SceneExtractor(QObject):
         self.read_out = 0
         self.duration = None
         self.duration_second = None
-        self.progress_item = []
+        self.progress_detail = []
         self.pts = []
         self.pts_second = []
         self.progress_percent = 0
@@ -100,13 +100,15 @@ class SceneExtractor(QObject):
         result_fps = re.search(r" fps=\d*.\d* ", std_error)
         result_speed = re.search(r" speed= *\d*.\d*", std_error)
         if result_time and result_speed:
-            time = result_time.group()[6:].strip()
-            time_second = self.pts_to_second(time)
+            time_ = result_time.group()[6:].strip()
+            time_second = self.pts_to_second(time_)
             frame = int(result_frame.group()[6:].strip())
             fps = float(result_fps.group()[5:].strip())
             speed = float(result_speed.group()[7:-1].strip())
-            self.progress_item = {"time": time, "time_second": time_second, "speed": speed, "frame": frame, "fps": fps}
-            logging.debug(self.progress_item)
+            self.progress_detail = {
+                "time": time_, "time_second": time_second, "speed": speed, "frame": frame, "fps": fps}
+
+            logging.debug(self.progress_detail)
 
     def output_frames_address(self):
         from PyQt5.QtCore import QFileInfo
