@@ -4,17 +4,21 @@ import logging
 import os
 import time
 
+from PyQt5.QtWidgets import QMessageBox
+
 logging.getLogger().setLevel(logging.DEBUG)
 
 
 class SceneExtractor(QObject):
     progress_percent_changed = pyqtSignal(float)
+    scene_chande_found = pyqtSignal(str)
 
     def __init__(self):
         super(SceneExtractor, self).__init__()
         self.sub_process = QProcess()
-        self.ffmpeg_url = QUrl('ffmpeg.exe')
-        self.video_url = QUrl('E:\movie\harryPotter\Harry PotterandtheDeathlyHallowsPart2_2011.mkv')
+        self.ffmpeg_url = None
+        self.video_url = None
+        self.output_url = None
 
         self.read_err = 0
         self.read_out = 0
@@ -30,20 +34,62 @@ class SceneExtractor(QObject):
 
     def start_process(self):
         scene_sensitivity = 0.4
-        output = self.output_frames_address()
-        logging.debug("dddddddddddddddddddddddd"+os.path.join(output, '%05d.jpg'))
+        qm = QMessageBox()
+        qm.setStandardButtons(QMessageBox.Ok)
+        if not self.ffmpeg_url:
+            qm.setText("please choose a valid address of ffmpeg.exe in input test")
+            qm.setWindowTitle("ffmpeg address error")
+            qm.show()
+        elif not self.video_url:
+            qm.setText("please choose a valid address of input video file")
+            qm.setWindowTitle("video address error")
+            qm.show()
+        else:
+            self.output_url = self.output_frames_address()
+            self.sub_process.start(
+                '"' + os.path.abspath(self.ffmpeg_url) + '"',
+                ['-i',
+                 os.path.abspath(self.video_url),
+                 '-filter_complex',
+                 f'select=\'gt(scene,{scene_sensitivity})\' ,showinfo',
+                 '-vsync',
+                 'vfr',
+                 '"' + os.path.join(self.video_url, 'frame%05d.jpg') + '"'
+                 ]
+            )
+            print("salaw")
 
-        self.sub_process.start(
-            self.ffmpeg_url.path(),
-            ['-i',
-             self.video_url.path(),
-             '-filter_complex',
-             f'select=\'gt(scene,{scene_sensitivity})\' ,showinfo',
-             '-vsync',
-             'vfr',
-             os.path.join(output, '%05d.jpg')
-             ]
-        )
+    def set_ffmpeg_url(self, ffmpeg_address):
+
+        if os.path.exists(ffmpeg_address):
+            process = QProcess()
+            address = '"' + os.path.abspath(ffmpeg_address) + '"'
+            process.start(address, ["-version"])
+            process.waitForFinished()
+            ou = process.readAllStandardOutput()
+            out = bytes(ou).decode("utf8")
+            search_result = re.search('ffmpeg', out)
+            if search_result:
+                self.ffmpeg_url = ffmpeg_address
+            else:
+                self.ffmpeg_url = None
+        else:
+            qm = QMessageBox()
+            qm.setText("ffmpeg file does not exists")
+            qm.setStandardButtons(QMessageBox.Ok)
+            qm.setWindowTitle("address error")
+            qm.exec_()
+
+    def set_video_url(self, video_address):
+        if os.path.exists(video_address):
+            address = os.path.abspath(video_address)
+            self.video_url = address
+        else:
+            qm = QMessageBox()
+            qm.setText("video file does not exists")
+            qm.setStandardButtons(QMessageBox.Ok)
+            qm.setWindowTitle("address error")
+            qm.exec_()
 
     def read_std_error(self):
         self.read_err += 1
@@ -86,13 +132,15 @@ class SceneExtractor(QObject):
         std_output = bytes(data).decode("utf8")
 
     def reading_finished(self):
-        pass
+        self.progress_percent_changed.emit(100)
 
     def find_pts(self, std_error):
         result = re.search(r"pts_time:\d*.\d*", std_error)
         if result:
-            self.pts.append(result.group()[9:])
-            self.pts_second.append(float(result.group()[9:]))
+            pts = result.group()[9:]
+            self.pts.append(pts)
+            self.pts_second.append(float(pts))
+            self.scene_chande_found.emit(pts)
 
     def process_spec(self, std_error):
         result_time = re.search(r" time=\d*:\d*:\d*.\d*", std_error)
@@ -114,9 +162,9 @@ class SceneExtractor(QObject):
         from PyQt5.QtCore import QFileInfo
 
         dirname, _ = os.path.split(os.path.abspath(__file__))
-        file_info = QFileInfo(self.video_url.path())
+        file_info = os.path.split(os.path.abspath(self.video_url))[-1]
         output_path = os.path.join(dirname, 'template')
-        output_path = os.path.join(output_path, file_info.fileName() + "_" + str(time.strftime("%Y-%m-%d-%H-%M-%S")))
+        output_path = os.path.join(output_path, file_info + "_" + str(time.strftime("%Y-%m-%d-%H-%M-%S")))
 
         try:
             if not os.path.exists(output_path):
