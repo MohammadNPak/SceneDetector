@@ -38,8 +38,5 @@ class MovieDetailModel(QAbstractTableModel):
                 elif index.column() == 2:
                     float_seconds = float(self.scene_data[index.row()])
                     return datetime.datetime.strftime(datetime.datetime.utcfromtimestamp(float_seconds), "%H:%M:%S:%f")
-
-
-
             else:
                 return 0

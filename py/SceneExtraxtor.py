@@ -33,7 +33,7 @@ class SceneExtractor(QObject):
         self.sub_process.finished.connect(self.reading_finished)
 
     def start_process(self):
-        scene_sensitivity = 0.4
+        scene_sensitivity = 0.1
         qm = QMessageBox()
         qm.setStandardButtons(QMessageBox.Ok)
         if not self.ffmpeg_url:
@@ -54,7 +54,7 @@ class SceneExtractor(QObject):
                  f'select=\'gt(scene,{scene_sensitivity})\' ,showinfo',
                  '-vsync',
                  'vfr',
-                 '"' + os.path.join(self.video_url, 'frame%05d.jpg') + '"'
+                 os.path.join(self.output_url, 'frame') + '%05d.jpg'
                  ]
             )
             print("salaw")

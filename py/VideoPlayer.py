@@ -16,6 +16,13 @@ class VideoPlayer(QWidget):
         self.media_player.setVideoOutput(self.video_widget)
         self.setup_ui()
 
+        self.media_player.positionChanged.connect(self.time_slider.setValue)
+        self.media_player.durationChanged.connect(self.time_slider.setMaximum)
+        self.ff_button.clicked.connect(self.change_media_player_position)
+
+    def change_media_player_position(self):
+        self.media_player.setPosition(self.media_player.position() + 10000)
+
     def open_file(self, file_address):
         if os.path.exists(file_address):
             media = QMediaContent(QUrl.fromLocalFile(os.path.abspath(file_address)))
@@ -42,7 +49,7 @@ class VideoPlayer(QWidget):
         self.stop_button.clicked.connect(lambda: self.media_player.stop())
 
         self.forward_button = QPushButton(icon=QIcon('ui\\icon\\next.svg'))
-        self.forward_button.clicked.connect(lambda: self.media_player.setPosition(100000))
+        # self.forward_button.clicked
 
         self.backward_button = QPushButton(icon=QIcon('ui\\icon\\before.svg'))
         self.ff_button = QPushButton(icon=QIcon('ui\\icon\\fast_forward.svg'))
